@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'models/transaction_model.dart';
 import 'services/api_service.dart';
 import 'screens/add_transaction_screen.dart';
+import 'screens/reports_screen.dart';
+
 void main() {
   runApp(const MoneyTrackerApp());
 }
@@ -61,12 +63,26 @@ class _DashboardScreenState extends State<DashboardScreen> {
           'Money Tracker',
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
-        actions: [
-          IconButton(
-            onPressed: reloadTransactions,
-            icon: const Icon(Icons.refresh),
-          ),
-        ],
+        // actions: [
+        //   IconButton(
+        //     onPressed: reloadTransactions,
+        //     icon: const Icon(Icons.refresh),
+        //   ),
+        // ],
+actions: [
+  IconButton(
+    tooltip: 'Reports & Charts',
+    icon: const Icon(Icons.bar_chart),
+    onPressed: () {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => const ReportsScreen(),
+        ),
+      );
+    },
+  ),
+],
       ),
 floatingActionButton: FloatingActionButton.extended(
   onPressed: () async {
