@@ -1,5 +1,8 @@
-import 'package:flutter/material.dart';
 
+import 'package:flutter/material.dart';
+import 'models/transaction_model.dart';
+import 'services/api_service.dart';
+import 'screens/add_transaction_screen.dart';
 void main() {
   runApp(const MoneyTrackerApp());
 }
@@ -10,14 +13,14 @@ class MoneyTrackerApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Money Tracker',
       debugShowCheckedModeBanner: false,
+      title: 'Money Tracker',
       theme: ThemeData(
         useMaterial3: true,
-        scaffoldBackgroundColor: const Color(0xFFF5F7FA),
         colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF16845B),
+          seedColor: const Color(0xFF16876A),
         ),
+        scaffoldBackgroundColor: const Color(0xFFF6F8F7),
       ),
       home: const DashboardScreen(),
     );
@@ -32,335 +35,243 @@ class DashboardScreen extends StatefulWidget {
 }
 
 class _DashboardScreenState extends State<DashboardScreen> {
-  int selectedIndex = 0;
+  final ApiService api = ApiService();
 
-  final List<Map<String, dynamic>> transactions = [
-    {
-      'title': 'Monthly Salary',
-      'category': 'Income',
-      'amount': 32000.0,
-      'icon': Icons.account_balance_wallet_outlined,
-      'color': Colors.green,
-    },
-    {
-      'title': 'Groceries',
-      'category': 'Food & Drinks',
-      'amount': -1250.0,
-      'icon': Icons.shopping_basket_outlined,
-      'color': Colors.orange,
-    },
-    {
-      'title': 'Transportation',
-      'category': 'Travel',
-      'amount': -300.0,
-      'icon': Icons.directions_bus_outlined,
-      'color': Colors.blue,
-    },
-    {
-      'title': 'Electricity Bill',
-      'category': 'Utilities',
-      'amount': -850.0,
-      'icon': Icons.bolt_outlined,
-      'color': Colors.purple,
-    },
-  ];
+  late Future<List<TransactionModel>> transactionsFuture;
 
-  double get totalIncome => transactions
-      .where((t) => (t['amount'] as double) > 0)
-      .fold(0.0, (sum, t) => sum + (t['amount'] as double));
+  @override
+  void initState() {
+    super.initState();
+    transactionsFuture = api.getTransactions();
+  }
 
-  double get totalExpenses => transactions
-      .where((t) => (t['amount'] as double) < 0)
-      .fold(0.0, (sum, t) => sum + (t['amount'] as double).abs());
+  String peso(double amount) => '₱${amount.toStringAsFixed(2)}';
 
-  double get balance => totalIncome - totalExpenses;
-
-  String money(double amount) =>
-      '₱${amount.toStringAsFixed(2).replaceAllMapped(
-            RegExp(r'\B(?=(\d{3})+(?!\d))'),
-            (match) => ',',
-          )}';
-
-  void addSampleExpense() {
+  void reloadTransactions() {
     setState(() {
-      transactions.insert(0, {
-        'title': 'New Expense',
-        'category': 'Other',
-        'amount': -100.0,
-        'icon': Icons.receipt_long_outlined,
-        'color': Colors.redAccent,
-      });
+      transactionsFuture = api.getTransactions();
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    final isWide = MediaQuery.of(context).size.width >= 700;
-
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: const Color(0xFFF5F7FA),
         title: const Text(
           'Money Tracker',
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
         actions: [
           IconButton(
-            tooltip: 'Notifications',
-            onPressed: () {},
-            icon: const Icon(Icons.notifications_none),
+            onPressed: reloadTransactions,
+            icon: const Icon(Icons.refresh),
           ),
-          const SizedBox(width: 12),
         ],
       ),
-      body: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 1000),
-          child: ListView(
-            padding: const EdgeInsets.all(20),
-            children: [
-              Container(
+floatingActionButton: FloatingActionButton.extended(
+  onPressed: () async {
+    final saved = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => const AddTransactionScreen(),
+      ),
+    );
+
+    if (saved == true && mounted) {
+      reloadTransactions();
+    }
+  },
+  icon: const Icon(Icons.add),
+  label: const Text('Add Transaction'),
+),
+
+
+      body: FutureBuilder<List<TransactionModel>>(
+        future: transactionsFuture,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(
+              child: CircularProgressIndicator(),
+            );
+          }
+
+          if (snapshot.hasError) {
+            return Center(
+              child: Padding(
                 padding: const EdgeInsets.all(24),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF16845B),
-                  borderRadius: BorderRadius.circular(24),
-                ),
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Text(
-                      'Total Balance',
-                      style: TextStyle(
-                        color: Colors.white70,
-                        fontSize: 16,
-                      ),
+                    const Icon(
+                      Icons.cloud_off,
+                      size: 48,
+                      color: Colors.grey,
                     ),
                     const SizedBox(height: 12),
+                    const Text('Unable to connect to your API'),
+                    const SizedBox(height: 8),
                     Text(
-                      money(balance),
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 32,
-                        fontWeight: FontWeight.bold,
-                      ),
+                      '${snapshot.error}',
+                      textAlign: TextAlign.center,
                     ),
-                    const SizedBox(height: 20),
-                    const Row(
-                      children: [
-                        Icon(
-                          Icons.trending_up,
-                          color: Colors.white,
-                        ),
-                        SizedBox(width: 8),
-                        Text(
-                          'Track your money with confidence',
-                          style: TextStyle(color: Colors.white),
-                        ),
-                      ],
+                    const SizedBox(height: 12),
+                    FilledButton(
+                      onPressed: reloadTransactions,
+                      child: const Text('Try Again'),
                     ),
                   ],
                 ),
               ),
-              const SizedBox(height: 20),
-              LayoutBuilder(
-                builder: (context, constraints) {
-                  final cardWidth =
-                      isWide ? (constraints.maxWidth - 16) / 2 : null;
+            );
+          }
 
-                  return Wrap(
-                    spacing: 16,
-                    runSpacing: 16,
+          final transactions = snapshot.data ?? [];
+
+          final income = transactions
+              .where((t) => t.type == 'income')
+              .fold<double>(0, (sum, t) => sum + t.amount);
+
+          final expenses = transactions
+              .where((t) => t.type == 'expense')
+              .fold<double>(0, (sum, t) => sum + t.amount);
+
+          final balance = income - expenses;
+
+          return RefreshIndicator(
+            onRefresh: () async => reloadTransactions(),
+            child: ListView(
+              padding: const EdgeInsets.all(16),
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF16876A),
+                    borderRadius: BorderRadius.circular(24),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      SizedBox(
-                        width: cardWidth ??
-                            (constraints.maxWidth - 1) / 2,
-                        child: SummaryCard(
-                          title: 'Income',
-                          amount: money(totalIncome),
-                          icon: Icons.arrow_downward,
-                          color: const Color(0xFF16845B),
+                      const Text(
+                        'Total Balance',
+                        style: TextStyle(color: Colors.white70),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        peso(balance),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 32,
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
-                      SizedBox(
-                        width: cardWidth ??
-                            (constraints.maxWidth - 1) / 2,
-                        child: SummaryCard(
-                          title: 'Expenses',
-                          amount: money(totalExpenses),
-                          icon: Icons.arrow_upward,
-                          color: Colors.redAccent,
-                        ),
+                      const SizedBox(height: 24),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _summary(
+                              'Income',
+                              income,
+                              Icons.arrow_downward,
+                              Colors.white,
+                            ),
+                          ),
+                          Expanded(
+                            child: _summary(
+                              'Expenses',
+                              expenses,
+                              Icons.arrow_upward,
+                              Colors.white,
+                            ),
+                          ),
+                        ],
                       ),
                     ],
-                  );
-                },
-              ),
-              const SizedBox(height: 28),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text(
-                    'Recent Transactions',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 24),
+                const Text(
+                  'Recent Transactions',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                if (transactions.isEmpty)
+                  const Padding(
+                    padding: EdgeInsets.all(24),
+                    child: Center(
+                      child: Text('No transactions yet.'),
                     ),
                   ),
-                  TextButton(
-                    onPressed: () => setState(() => selectedIndex = 1),
-                    child: const Text('See all'),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              ...transactions.map(
-                (transaction) => TransactionTile(
-                  title: transaction['title'] as String,
-                  category: transaction['category'] as String,
-                  amount: transaction['amount'] as double,
-                  icon: transaction['icon'] as IconData,
-                  color: transaction['color'] as Color,
-                  formatMoney: money,
-                ),
-              ),
-              const SizedBox(height: 90),
-            ],
-          ),
-        ),
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: addSampleExpense,
-        tooltip: 'Add sample expense',
-        backgroundColor: const Color(0xFF16845B),
-        foregroundColor: Colors.white,
-        child: const Icon(Icons.add),
-      ),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: selectedIndex,
-        onDestinationSelected: (index) {
-          setState(() => selectedIndex = index);
+                ...transactions.take(10).map((transaction) {
+                  final isIncome = transaction.type == 'income';
+
+                  return Card(
+                    elevation: 0,
+                    color: Colors.white,
+                    child: ListTile(
+                      leading: CircleAvatar(
+                        backgroundColor: isIncome
+                            ? Colors.green.shade50
+                            : Colors.red.shade50,
+                        child: Icon(
+                          isIncome
+                              ? Icons.arrow_downward
+                              : Icons.arrow_upward,
+                          color: isIncome ? Colors.green : Colors.red,
+                        ),
+                      ),
+                      title: Text(transaction.category),
+                      subtitle: Text(
+                        transaction.note?.isNotEmpty == true
+                            ? transaction.note!
+                            : transaction.transactionDate,
+                      ),
+                      trailing: Text(
+                        '${isIncome ? '+' : '-'}${peso(transaction.amount)}',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: isIncome ? Colors.green : Colors.red,
+                        ),
+                      ),
+                    ),
+                  );
+                }),
+              ],
+            ),
+          );
         },
-        destinations: const [
-          NavigationDestination(
-            icon: Icon(Icons.home_outlined),
-            selectedIcon: Icon(Icons.home),
-            label: 'Home',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.receipt_long_outlined),
-            label: 'Transactions',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.bar_chart_outlined),
-            label: 'Reports',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.settings_outlined),
-            label: 'Settings',
-          ),
-        ],
       ),
     );
   }
-}
 
-class SummaryCard extends StatelessWidget {
-  final String title;
-  final String amount;
-  final IconData icon;
-  final Color color;
-
-  const SummaryCard({
-    super.key,
-    required this.title,
-    required this.amount,
-    required this.icon,
-    required this.color,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      elevation: 0,
-      color: Colors.white,
-      child: Padding(
-        padding: const EdgeInsets.all(18),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+  Widget _summary(
+    String title,
+    double amount,
+    IconData icon,
+    Color color,
+  ) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
           children: [
-            Icon(icon, color: color, size: 28),
-            const SizedBox(height: 14),
-            Text(
-              title,
-              style: const TextStyle(color: Colors.black54),
-            ),
-            const SizedBox(height: 6),
-            FittedBox(
-              fit: BoxFit.scaleDown,
-              alignment: Alignment.centerLeft,
-              child: Text(
-                amount,
-                style: const TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
+            Icon(icon, color: color, size: 18),
+            const SizedBox(width: 6),
+            Text(title, style: TextStyle(color: color)),
           ],
         ),
-      ),
-    );
-  }
-}
-
-class TransactionTile extends StatelessWidget {
-  final String title;
-  final String category;
-  final double amount;
-  final IconData icon;
-  final Color color;
-  final String Function(double) formatMoney;
-
-  const TransactionTile({
-    super.key,
-    required this.title,
-    required this.category,
-    required this.amount,
-    required this.icon,
-    required this.color,
-    required this.formatMoney,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final isIncome = amount >= 0;
-
-    return Card(
-      elevation: 0,
-      color: Colors.white,
-      margin: const EdgeInsets.only(bottom: 10),
-      child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 16,
-          vertical: 4,
-        ),
-        leading: CircleAvatar(
-          backgroundColor: color.withValues(alpha: 0.12),
-          child: Icon(icon, color: color),
-        ),
-        title: Text(
-          title,
-          style: const TextStyle(fontWeight: FontWeight.w600),
-        ),
-        subtitle: Text(category),
-        trailing: Text(
-          '${isIncome ? '+' : '-'}${formatMoney(amount.abs())}',
+        const SizedBox(height: 6),
+        Text(
+          peso(amount),
           style: TextStyle(
+            color: color,
+            fontSize: 18,
             fontWeight: FontWeight.bold,
-            color: isIncome ? Colors.green : Colors.redAccent,
           ),
         ),
-      ),
+      ],
     );
   }
 }
