@@ -4,6 +4,7 @@ import 'models/transaction_model.dart';
 import 'services/api_service.dart';
 import 'screens/add_transaction_screen.dart';
 import 'screens/reports_screen.dart';
+import 'screens/transactions_screen.dart';
 
 void main() {
   runApp(const MoneyTrackerApp());
@@ -82,7 +83,26 @@ actions: [
       );
     },
   ),
+IconButton(
+  tooltip: 'Transaction History',
+  icon: const Icon(Icons.receipt_long),
+  onPressed: () async {
+    final changed = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const TransactionsScreen(),
+      ),
+    );
+
+    if (changed == true && mounted) {
+      reloadTransactions();
+    }
+  },
+),
+
 ],
+
+
       ),
 floatingActionButton: FloatingActionButton.extended(
   onPressed: () async {
