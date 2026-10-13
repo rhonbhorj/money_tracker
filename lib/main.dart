@@ -5,6 +5,7 @@ import 'services/api_service.dart';
 import 'screens/add_transaction_screen.dart';
 import 'screens/reports_screen.dart';
 import 'screens/transactions_screen.dart';
+import 'screens/budget_screen.dart';
 
 void main() {
   runApp(const MoneyTrackerApp());
@@ -58,49 +59,62 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text(
-          'Money Tracker',
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
-        // actions: [
-        //   IconButton(
-        //     onPressed: reloadTransactions,
-        //     icon: const Icon(Icons.refresh),
-        //   ),
-        // ],
-actions: [
+      return Scaffold(
+        appBar: AppBar(
+          title: const Text(
+            'Money Tracker',
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
+          // actions: [
+          //   IconButton(
+          //     onPressed: reloadTransactions,
+          //     icon: const Icon(Icons.refresh),
+          //   ),
+          // ],
+  actions: [
+    IconButton(
+      tooltip: 'Reports & Charts',
+      icon: const Icon(Icons.bar_chart),
+      onPressed: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => ReportsScreen(),
+          ),
+        );
+      },
+    ),
   IconButton(
-    tooltip: 'Reports & Charts',
-    icon: const Icon(Icons.bar_chart),
+    tooltip: 'Transaction History',
+    icon: const Icon(Icons.receipt_long),
+    onPressed: () async {
+      final changed = await Navigator.push<bool>(
+        context,
+        MaterialPageRoute(
+          builder: (context) => const TransactionsScreen(),
+        ),
+      );
+
+      if (changed == true && mounted) {
+        reloadTransactions();
+      }
+    },
+
+  ),
+  IconButton(
+    tooltip: 'Monthly Budgets',
+    icon: const Icon(Icons.account_balance_wallet),
     onPressed: () {
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (context) => const ReportsScreen(),
+          builder: (context) => const BudgetScreen(),
         ),
       );
     },
   ),
-IconButton(
-  tooltip: 'Transaction History',
-  icon: const Icon(Icons.receipt_long),
-  onPressed: () async {
-    final changed = await Navigator.push<bool>(
-      context,
-      MaterialPageRoute(
-        builder: (context) => const TransactionsScreen(),
-      ),
-    );
 
-    if (changed == true && mounted) {
-      reloadTransactions();
-    }
-  },
-),
-
-],
+  ],
 
 
       ),

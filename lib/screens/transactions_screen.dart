@@ -153,7 +153,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
             child: ListView.separated(
               padding: const EdgeInsets.all(12),
               itemCount: transactions.length,
-              separatorBuilder: (_, __) =>
+              separatorBuilder: (_, _) =>
                   const SizedBox(height: 4),
               itemBuilder: (context, index) {
                 final transaction = transactions[index];
