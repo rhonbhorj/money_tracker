@@ -24,7 +24,7 @@ class MoneyTrackerApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(
           seedColor: const Color(0xFF16876A),
         ),
-        scaffoldBackgroundColor: const Color(0xFFF6F8F7),
+        scaffoldBackgroundColor: const Color(0xFFF6F8F7), ///back ground color
       ),
       home: const DashboardScreen(),
     );
